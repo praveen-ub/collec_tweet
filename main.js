@@ -31,7 +31,7 @@ var languageVsCode = {
     "French":"fr",
     "Thai":"th"
 };
-var statsFile = "output_files/stats.json";
+var statsFile = "../output_files/stats.json";
 var stats;
 stats = fs.readFileSync(statsFile,"utf8");
 console.log("stats is::"+stats);
@@ -143,7 +143,7 @@ function init(){
 function log(logStr){
   var date = new Date();
   logStr = getDateString(date)+"::::"+logStr;
-  var logFileName = "log_files/log_"+(date.getMonth()+1)+"_"+(date.getDate())+".txt";
+  var logFileName = "../log_files/log_"+(date.getMonth()+1)+"_"+(date.getDate())+".txt";
   console.log()
   fs.open(logFileName, 'a',function(err){
     if(err){console.log("Error occured while opening log file")}
@@ -179,7 +179,7 @@ function collectTweets(city, language, topic){
          	 console.log(`tweet text:${tweet.text}, tweet lang:${tweet.lang}, tweet city:${tweet.city}`)
          });
 
-         fs.writeFile("output_files/raw_tweets/"+fileName,JSON.stringify(outObj), function(err){
+         fs.writeFile("../output_files/raw_tweets/"+fileName,JSON.stringify(outObj), function(err){
               if(err){
                 console.log("Error occured while writing the tweet");
                 console.log(err);
@@ -192,7 +192,7 @@ function collectTweets(city, language, topic){
          stats["Total"] = stats["Total"]==null?0:stats["Total"] + tweetsCount;
          fs.writeFileSync(statsFile,'\r\n'+JSON.stringify(stats));
          //record last run time
-         fs.appendFile("output_files/last_run.txt",new Date()+'\r\n', function(err){
+         fs.appendFile("../output_files/last_run.txt",new Date()+'\r\n', function(err){
               if(err){console.log("Error occured while writing last run")}
          });
 
