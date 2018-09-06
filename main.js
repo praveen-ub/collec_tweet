@@ -62,31 +62,31 @@ else{
 
 var cityVstopicsVsKeywords = {
 
-      "New York City (NYC)-Environment":"flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
-      "New York City (NYC)-Crime":"Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
-      "New York City (NYC)-Politics":"Adminstration OR Constitution OR Trump OR Putin OR Federal or Republican OR Democratic -RT",
-      "New York City (NYC)-Social Unrest":"rebellion OR left-wing OR riots OR protests OR strikes -RT",
-      "New York City (NYC)-Infrastructure":"Roads OR electricity OR sanitation OR water OR power -RT",
-      "Delhi-Environment":"flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
-      "Delhi-Crime":"Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
-      "Delhi-Politics":"Adminstration OR Constitution OR Modi OR Rahul OR Ghandhi or Republican OR Democratic -RT",
-      "Delhi-Social Unrest":"rebellion OR left-wing OR riots OR protests OR strikes -RT",
-      "Delhi-Infrastructure":"Roads OR electricity OR sanitation OR water OR power -RT",
-      "Bangkok-Environment":"flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
-      "Bangkok-Crime":"Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
-      "Bangkok-Politics":"Adminstration OR Constitution OR Trump OR Putin OR Federal or Republican OR Democratic -RT",
-      "Bangkok-Social Unrest":"rebellion OR left-wing OR riots OR protests OR strikes -RT",
-      "Bangkok-Infrastructure":"Roads OR electricity OR sanitation OR water OR power -RT",
-      "Paris-Environment":"flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
-      "Paris-Crime":"Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
-      "Paris-Politics":"Adminstration OR Constitution OR Macron OR Euro OR Federal or Republican OR Democratic -RT",
-      "Paris-Social Unrest":"rebellion OR left-wing OR riots OR protests OR strikes -RT",
-      "Paris-Infrastructure":"Roads OR electricity OR sanitation OR water OR power -RT",
-      "Mexico City-Environment":"flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
-      "Mexico City-Crime":"Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
-      "Mexico City-Politics":"left-wing OR Adminstration OR Constitution OR Trump OR Andres Manuel OR Federal or Republican OR Democratic -RT",
-      "Mexico City-Social Unrest":"rebellion OR left-wing OR riots OR protests OR strikes -RT",
-      "Mexico City-Infrastructure":"Roads OR electricity OR sanitation OR water OR power -RT"
+      "New York City (NYC)-Environment":"traffic OR climate OR ecosystem OR flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
+      "New York City (NYC)-Crime":"corruption OR Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
+      "New York City (NYC)-Politics":"party OR campaign OR unemployment OR corruption OR Adminstration OR Constitution OR Trump OR China OR Federal or Republican OR Democratic -RT",
+      "New York City (NYC)-Social Unrest":"order OR unemployment OR rebellion OR left-wing OR riots OR protests OR strikes -RT",
+      "New York City (NYC)-Infrastructure":"economy OR Roads OR traffic OR electricity OR sanitation OR water OR power -RT",
+      "Delhi-Environment":"traffic OR climate OR flood OR Blizzard OR Pollution OR temperature -RT",
+      "Delhi-Crime":"corruption OR Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
+      "Delhi-Politics":"union OR politics OR AAP OR law OR agenda OR corruption OR Modi OR Rahul OR Party OR China -RT",
+      "Delhi-Social Unrest":"order OR rebellion OR left-wing OR riots OR protests OR strikes -RT",
+      "Delhi-Infrastructure":"economy OR Roads OR traffic OR electricity OR sanitation OR water OR power -RT",
+      "Bangkok-Environment":"traffic OR flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
+      "Bangkok-Crime":"unemployment OR corruption OR Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
+      "Bangkok-Politics":"King OR monarchy OR election OR prime minister OR order OR politicians OR ban OR corruption OR Trump OR China -RT",
+      "Bangkok-Social Unrest":"military OR peace OR order OR rebellion OR left-wing OR riots OR protests OR strikes -RT",
+      "Bangkok-Infrastructure":"economy OR Roads OR traffic OR electricity OR sanitation OR water OR power -RT",
+      "Paris-Environment":"traffic OR ecosystem OR flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
+      "Paris-Crime":"corruption OR Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
+      "Paris-Politics":"party OR politician OR Climate OR corruption OR Adminstration OR law OR Macron OR president OR euro OR campaign -RT",
+      "Paris-Social Unrest":"military OR order OR rebellion OR left-wing OR riots OR protests OR strikes -RT",
+      "Paris-Infrastructure":"economy OR Roads OR traffic OR electricity OR sanitation OR water OR power -RT",
+      "Mexico City-Environment":"traffic OR climate OR flood OR Blizzard OR earthquake OR hurricane OR Pollution OR temperature -RT",
+      "Mexico City-Crime":"unemployment OR corruption OR Crime OR Rape OR Murder OR Criminal OR Robbery OR Assault OR gun OR Theft -RT",
+      "Mexico City-Politics":"reform OR party OR politician OR campaign OR corruption OR left-wing OR congress OR Trump OR Andres Manuel OR Republican -RT",
+      "Mexico City-Social Unrest":"military OR peace OR rebellion OR left-wing OR riots OR protests OR strikes -RT",
+      "Mexico City-Infrastructure":"economy OR Roads OR traffic OR electricity OR sanitation OR water OR power -RT"
 };
 var combinations = [
     {
@@ -158,14 +158,15 @@ function collectTweets(city, language, topic){
       var geoLocation = cityVsGeoLocation[city];
       var langCode = languageVsCode[language];
       var keyWords = cityVstopicsVsKeywords[city+"-"+topic];
+      fs.appendFileSync("../output_files/last_run.txt","last run at::"+new Date()+'\r\n');
       twClient.get('search/tweets', {q: keyWords,count: queryLimit, lang: langCode , geocode:geoLocation}, function(error, tweets, response) {
-         log(`Collecting ${queryLimit} tweets for the combo ${city}::${language}::${topic}::${keyWords}`);
          log(`Current query count is ${currentQueryCount}`);
+         log(`Collecting ${queryLimit} tweets for the combo ${city}::${language}::${topic}::${keyWords}`);
+
          if(!tweets || !tweets.statuses)
            return;
          var tweetsCount = tweets.statuses.length;
          log(`Tweets collected ${tweetsCount}`);
-         console.log(`Fetched ${tweetsCount} tweets`);
          var date = new Date();
          var month = monthArray[date.getMonth()];
          var outObj = [];
@@ -191,14 +192,22 @@ function collectTweets(city, language, topic){
          stats[language] = stats[language] + tweetsCount;
          stats["Total"] = stats["Total"]==null?0:stats["Total"] + tweetsCount;
          fs.writeFileSync(statsFile,'\r\n'+JSON.stringify(stats));
-         //record last run time
-         fs.appendFile("../output_files/last_run.txt",new Date()+'\r\n', function(err){
-              if(err){console.log("Error occured while writing last run")}
-         });
 
-         currentQueryCount+=queryLimit;
+         currentQueryCount+=queryLimit; //should add only tweetcount
          if(currentQueryCount + queryLimit > windowLimit){
            log("Query limit exhausted, Starting to sleep at::"+new Date().getMinutes());
+           //log next run time
+           var date = new Date();
+           var minutesAfterAddingDelay = date.getMinutes()+17;
+           if(minutesAfterAddingDelay>60){
+            	var minutesPart = (minutesAfterAddingDelay % 60);
+            	date.setHours(date.getHours()+1);
+            	date.setMinutes(minutesPart);
+            }
+            else{
+            	date.setMinutes(minutesAfterAddingDelay);
+            }
+           fs.appendFileSync("../output_files/last_run.txt","next run at::"+date+'\r\n');
            sleep.sleep(sleepTimeInSeconds);
            log("Waking after sleep at::"+new Date().getMinutes());
            currentQueryCount = 0;
