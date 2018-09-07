@@ -9,9 +9,10 @@ const monthArray = ['Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct
 //var searchEndpoint = "https://api.twitter.com/1.1/search/tweets.json";
 var bearerToken = "Bearer AAAAAAAAAAAAAAAAAAAAAPaR8QAAAAAAfnyADdVVFsTnS349UfLAucU55Pw%3DJ0lYBaMnr7wigxeYpQGc0RGWj4qxoQlO0rEprCQRGgSHuS38No";
 
-var queryLimit = 10; //real value -> 45
+var queryLimit = 45; //real value -> 45
 var windowLimit = 450; //real value -> 450
-var sleepTimeInSeconds = 17*60; //real value -> 15*60
+var sleepTimeInMinutes = 20;
+var sleepTimeInSeconds = sleepTimeInMinutes*60; //real value -> 15*60
 var currentQueryCount = 0;
 var topics = ["Environment","Crime","Politics","Social Unrest","Infrastructure"];
 //topic keywords should be specific to city, work on it
@@ -161,31 +162,51 @@ function collectTweets(city, language, topic){
       fs.appendFileSync("../output_files/last_run.txt","last run at::"+new Date()+'\r\n');
       twClient.get('search/tweets', {q: keyWords,count: queryLimit, lang: langCode , geocode:geoLocation}, function(error, tweets, response) {
          log(`Current query count is ${currentQueryCount}`);
-         log(`Collecting ${queryLimit} tweets for the combo ${city}::${language}::${topic}::${keyWords}`);
+         log(`Fetching ${queryLimit} tweets for the combo ${city}::${language}::${topic}::${keyWords}`);
 
          if(!tweets || !tweets.statuses)
            return;
          var tweetsCount = tweets.statuses.length;
-         log(`Tweets collected ${tweetsCount}`);
+         log(`Tweets fetched ${tweetsCount}`);
+
+         var uniqueTweetsCount = 0;
+         var date = new Date();
+         var tweetIds="";
+         var tweetIdsFile = "../log_files/tweet_ids_"+(date.getMonth()+1)+"_"+(date.getDate())+".json";
+         if(fs.existsSync(tweetIdsFile)){
+           tweetIdsAlreadyExisting = fs.readFileSync(tweetIdsFile,"utf8");
+           if(!tweetIdsAlreadyExisting){
+              tweetIds = tweetIdsAlreadyExisting;
+           }
+         }
          var date = new Date();
          var month = monthArray[date.getMonth()];
          var outObj = [];
          var fileName = `${city}_${topic}_${langCode}_${month}_${date.getDate()}_${date.getHours()}_${date.getMinutes()}_${date.getSeconds()}_${date.getMilliseconds()}.json`;
          tweets.statuses.forEach(function(tweet) {
-           tweet.city = city;
-           tweet.topic = topic;
-           delete tweet.favorite_count; delete tweet.favorited; delete tweet.retweet_count; delete tweet.retweeted_status;
-           delete tweet.source; delete tweet.user;
-           outObj.push(tweet);
-         	 console.log(`tweet text:${tweet.text}, tweet lang:${tweet.lang}, tweet city:${tweet.city}`)
+           var tweetId = tweet.id;
+           if(tweetIds.indexOf(tweetId) == -1){
+             tweet.city = city;
+             tweet.topic = topic;
+             delete tweet.favorite_count; delete tweet.favorited; delete tweet.retweet_count; delete tweet.retweeted_status;
+             delete tweet.source; delete tweet.user;
+             outObj.push(tweet);
+             tweetIds = tweetIds+tweetId.toString()+",";
+             uniqueTweetsCount++;
+             console.log(`tweet text:${tweet.text}, tweet lang:${tweet.lang}, tweet city:${tweet.city}`);
+           }
+           else{
+             log("Tweet with ID::"+tweetId+"::exists already");
+           }
          });
 
          fs.writeFile("../output_files/raw_tweets/"+fileName,JSON.stringify(outObj), function(err){
               if(err){
                 console.log("Error occured while writing the tweet");
-                console.log(err);
               }
          });
+         log(`Parsed ${uniqueTweetsCount} unique tweets`);
+         fs.appendFileSync(tweetIdsFile, tweetIds);
          //Collect stats
          stats[city] = stats[city] + tweetsCount;
          stats[topic] = stats[topic] + tweetsCount;
@@ -196,9 +217,8 @@ function collectTweets(city, language, topic){
          currentQueryCount+=queryLimit; //should add only tweetcount
          if(currentQueryCount + queryLimit > windowLimit){
            log("Query limit exhausted, Starting to sleep at::"+new Date().getMinutes());
-           //log next run time
            var date = new Date();
-           var minutesAfterAddingDelay = date.getMinutes()+17;
+           var minutesAfterAddingDelay = date.getMinutes()+sleepTimeInMinutes;
            if(minutesAfterAddingDelay>60){
             	var minutesPart = (minutesAfterAddingDelay % 60);
             	date.setHours(date.getHours()+1);
